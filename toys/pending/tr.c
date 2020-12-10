@@ -4,19 +4,22 @@
  *
  * See http://pubs.opengroup.org/onlinepubs/9699919799/utilities/tr.html
 
-USE_TR(NEWTOY(tr, "^>2<1Ccsd[+cC]", TOYFLAG_USR|TOYFLAG_BIN))
+USE_TR(NEWTOY(tr, "^>2<1Cc(complement)s(sqeeze-repeats)t(truncate-set1)d(delete)[+cC][!td]", TOYFLAG_USR|TOYFLAG_BIN))
 
 config TR
   bool "tr"
   default n
   help
-    usage: tr [-cds] SET1 [SET2]
+    usage: tr [-cdst] SET1 [SET2]
 
     Translate, squeeze, or delete characters from stdin, writing to stdout
 
-    -c/-C  Take complement of SET1
-    -d     Delete input characters coded SET1
-    -s     Squeeze multiple output characters of SET2 into one character
+    -c/-C/--complement      Take complement of SET1
+    -d/--delete             Delete input characters coded SET1
+    -s/--sqeeze-repeats     Squeeze multiple consecutive output characters of
+                            SET2 into one character
+    -t/--truncate-set1      Truncate SET1 to length of SET2. May only be used
+                            when translating.
 */
 
 #define FOR_tr
@@ -210,18 +213,18 @@ save:
 
 static void print_map(char *set1, char *set2)
 {
-  int n, src, dst, prev = -1;
+  short n, src, dst, prev = -1;  // short is fine since toybuf is char[4096].
 
   while ((n = read(0, toybuf, sizeof(toybuf)))) {
     if (!FLAG(d) && !FLAG(s)) {
       for (dst = 0; dst < n; dst++) toybuf[dst] = TT.map[toybuf[dst]];
     } else {
       for (src = dst = 0; src < n; src++) {
-        int ch = TT.map[toybuf[src]];
+        short ch = TT.map[toybuf[src]];
 
         if (FLAG(d) && (ch & 0x100)) continue;
         if (FLAG(s) && ((ch & 0x200) && prev == ch)) continue;
-        toybuf[dst++] = prev = ch;
+        toybuf[dst++] = (prev = ch) & 0xff;  // truncate!
       }
     }
     xwrite(1, toybuf, dst);
@@ -255,6 +258,7 @@ void tr_main(void)
     if (toys.optargs[1][0] == '\0') error_exit("set2 can't be empty string");
     set2 = expand_set(toys.optargs[1], &TT.len2);
   }
+  if (toys.optflags & FLAG_t && set2) TT.len1 = TT.len2;
   map_translation(set1, set2);
 
   print_map(set1, set2);

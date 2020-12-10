@@ -7,5 +7,12 @@
 testing "" "tr 1 2" "223223223" "" "123123123"
 testing "-d" "tr -d 1" "232323" "" "123123123"
 testing "-s" "tr -s 1" "12223331222333" "" "111222333111222333"
+testing "-c" "tr -c 1 1" "111111111" "" "123123123"
+testing "-C" "tr -C 1 1" "111111111" "" "123123123"
+testing "-t" "tr -t abcdef ghi" "123ghidef456" "" "123abcdef456"
+testing "\\\\" "tr \\\\ b" "abc" "" "a\\\\c"
+testing "range" "tr a-f g-l" "ghijklmno" "" "abcdefmno"
+testing "[:alpha:]" "tr [:alpha:] 0" "000000" "" "a0bc00"
+testing "[:digit:]" "tr [:digit:] a" "aabcaa" "" "a1bc23"
 
 testing "no pathological flushing" "seq 10000000 | tr 1 2 > /dev/null" "" "" ""
